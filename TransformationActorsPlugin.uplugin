@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "TransformationActorsPlugin",
+	"Description": "Plugin to change the location, rotation and scale of the actor in the game. ",
+	"Category": "Gameplay",
+	"CreatedBy": "Anatoli Kucharau",
+	"CreatedByURL": "https://github.com/filln/UE4-TransformationActorsPlugin",
+	"DocsURL": "https://github.com/filln/UE4-TransformationActorsPlugin/wiki/Content",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+  	"EngineVersion": "4.22.0",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "TransformationActorsPlugin",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		}
+	]
+}
