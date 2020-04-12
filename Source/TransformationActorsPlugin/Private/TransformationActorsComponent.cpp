@@ -43,28 +43,7 @@ UTransformationActorsComponent::UTransformationActorsComponent()
 
 void UTransformationActorsComponent::BeginPlay()
 {
-	SetPlayerController(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 
-	if (GetPlayerController())
-	{
-		SetPlayerPawn(GetPlayerController()->GetPawnOrSpectator());
-	}
-
-	if (bIsShowDebugMessages)
-	{
-		if (GetPlayerController() == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: BeginPlay(): PlayerController is not valid."));
-		}
-		if (GetPlayerPawn() == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: BeginPlay(): PlayerPawn is not valid."));
-		}
-		if (GetWorld() == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: BeginPlay(): GetWorld() is not valid."));
-		}
-	}
 
 }
 
@@ -135,7 +114,8 @@ void UTransformationActorsComponent::StopTransformationActor()
 void UTransformationActorsComponent::SwitchOnTransformationMode(ETransformState InTransformState)
 {
 	if (
-		GetIsTransform() 
+		!SpecifyControllerAndPawn()
+		|| GetIsTransform() 
 		|| InTransformState == ETransformState::ETS_Idle 
 		|| GetTransformState() == InTransformState
 		)
@@ -893,6 +873,48 @@ void UTransformationActorsComponent::CalcDeltaYaw(float Yaw)
 {
 	DeltaYawDegree = Yaw - YawSave;
 	YawSave = Yaw;
+}
+
+bool UTransformationActorsComponent::SpecifyControllerAndPawn()
+{
+	bool bAllValid = true;
+
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		SetPlayerController(UGameplayStatics::GetPlayerController(World, 0));
+		if (GetPlayerController())
+		{
+			SetPlayerPawn(GetPlayerController()->GetPawnOrSpectator());
+			if (GetPlayerPawn() == nullptr)
+			{
+				if (bIsShowDebugMessages)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("TransformationActors: SpecifyControllerAndPawn(): PlayerPawn is not valid."));
+				}
+				bAllValid = false;
+			}
+		}
+		else
+		{
+			if (bIsShowDebugMessages)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("TransformationActors: SpecifyControllerAndPawn(): PlayerController is not valid."));
+			}
+			bAllValid = false;
+		}
+	}
+	else
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: SpecifyControllerAndPawn(): GetWorld() is not valid."));
+		}
+		bAllValid = false;
+	}
+
+	return bAllValid;
+
 }
 
 bool UTransformationActorsComponent::CheckControllerAndPawn()

@@ -306,6 +306,10 @@ public:
 		void CalcDeltaYaw(float Yaw);
 
 
+	/*Specify PlayerController and PlayerPawn.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
+		bool SpecifyControllerAndPawn();
+
 	/*Check PlayerController and PlayerPawn.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
 		bool CheckControllerAndPawn();
