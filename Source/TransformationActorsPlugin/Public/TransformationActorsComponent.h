@@ -18,14 +18,23 @@ enum class ETransformState : uint8
 	//Location.
 	ETS_Location	UMETA(DisplayName = "Location"),
 
-	//Rotation.
-	ETS_Rotation	UMETA(DisplayName = "Rotation"),
+	//Rotation Yaw and Pitch.
+	ETS_Rotation_YawPitch	UMETA(DisplayName = "Rotation_YawPitch"),
+
+	//Rotation Roll.
+	ETS_Rotation_Roll		UMETA(DisplayName = "Rotation_Roll"),
+
+	//Rotation Pitch.
+	ETS_Rotation_Pitch		UMETA(DisplayName = "Rotation_Pitch"),
+
+	//Rotation Yaw.
+	ETS_Rotation_Yaw		UMETA(DisplayName = "Rotation_Yaw"),
 
 	//Scale.
-	ETS_Scale		UMETA(DisplayName = "Scale"),
+	ETS_Scale				UMETA(DisplayName = "Scale"),
 
-	//Waiting. No operations..
-	ETS_Idle		UMETA(DisplayName = "Idle")
+	//Idle. No operations.
+	ETS_Idle				UMETA(DisplayName = "Idle")
 };
 
 /*Dispatcher that is called when the transformation mode is activated.*/
@@ -205,9 +214,9 @@ public:
 		AActor* FindActorUnderCursor();
 
 	/*Run
-	StartLocationTransformTimer() or
-	StartRotationTransformTimer() or
-	StartScaleTransformTimer()
+	StartLocationTimer() or
+	StartRotationTimer() or
+	StartScaleTimer()
 	depending on the TransformState.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
 		void StartTransformTimer(ETransformState CurrentTransformState);
@@ -216,9 +225,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
 		void StartLocationTimer();
 
-	/*Launch RotationTimer with the RotationActor() method.*/
+	/*Launch RotationTimer with the RotationActor() methods.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void StartRotationTimer();
+		void StartRotationTimer(ETransformState CurrentTransformState);
 
 	/*Run ScaleTimer with ScaleActor() method.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
@@ -228,9 +237,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
 		void LocationActor();
 
-	/*Rotate TransformActor.*/
+	/*Rotate TransformActor Yaw and Pitch.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void RotationActor();
+		void RotationYawPitchActor();
+	/*Rotate TransformActor Roll.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
+		void RotationRollActor();
+	/*Rotate TransformActor Pitch.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
+		void RotationPitchActor();
+	/*Rotate TransformActor Yaw.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
+		void RotationYawActor();
 
 	/*Scale TransformActor.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
@@ -287,6 +305,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
 		void CalcDeltaYaw(float Yaw);
 
+
+	/*Check PlayerController and PlayerPawn.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
+		bool CheckControllerAndPawn();
 
 
 

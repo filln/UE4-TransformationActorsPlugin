@@ -70,6 +70,11 @@ void UTransformationActorsComponent::BeginPlay()
 
 void UTransformationActorsComponent::StartTransformationActor()
 {
+	if (GetIsTransform() || GetTransformState() == ETransformState::ETS_Idle)
+	{
+		return;
+	}
+
 	AActor* FoundActor = FindActorUnderCursor();
 
 	if (FoundActor == nullptr)
@@ -111,7 +116,11 @@ void UTransformationActorsComponent::StopTransformationActor()
 		SetIsLockFirstIterationLocationTimer(false);
 		StopLocationTimer();
 	}
-	if (GetTransformState() == ETransformState::ETS_Rotation)
+	if (GetTransformState() == ETransformState::ETS_Rotation_YawPitch
+		|| GetTransformState() == ETransformState::ETS_Rotation_Roll
+		|| GetTransformState() == ETransformState::ETS_Rotation_Pitch
+		|| GetTransformState() == ETransformState::ETS_Rotation_Yaw
+		)
 	{
 		SetIsLockFirstIterationRotationTimer(false);
 		StopRotationTimer();
@@ -125,6 +134,15 @@ void UTransformationActorsComponent::StopTransformationActor()
 
 void UTransformationActorsComponent::SwitchOnTransformationMode(ETransformState InTransformState)
 {
+	if (
+		GetIsTransform() 
+		|| InTransformState == ETransformState::ETS_Idle 
+		|| GetTransformState() == InTransformState
+		)
+	{
+		return;
+	}
+
 	SetInputModeGameAndUI();
 	SetTransformState(InTransformState);
 	OnSwitchOnTransformationMode.Broadcast();
@@ -132,7 +150,18 @@ void UTransformationActorsComponent::SwitchOnTransformationMode(ETransformState 
 
 void UTransformationActorsComponent::SwitchOffTransformationMode()
 {
+	if (GetTransformState() == ETransformState::ETS_Idle)
+	{
+		return;
+	}
+
 	SetInputModeGameOnly();
+
+	if (GetIsTransform())
+	{
+		StopTransformationActor();
+	}
+
 	ResetTransform();
 	OnSwitchOffTransformationMode.Broadcast();
 }
@@ -236,10 +265,13 @@ void UTransformationActorsComponent::StartTransformTimer(ETransformState Current
 		SetIsLockFirstIterationLocationTimer(false);
 		StartLocationTimer();
 	}
-	if (CurrentTransformState == ETransformState::ETS_Rotation)
+	if (CurrentTransformState == ETransformState::ETS_Rotation_YawPitch
+		|| CurrentTransformState == ETransformState::ETS_Rotation_Roll
+		|| CurrentTransformState == ETransformState::ETS_Rotation_Pitch
+		|| CurrentTransformState == ETransformState::ETS_Rotation_Yaw)
 	{
 		SetIsLockFirstIterationRotationTimer(false);
-		StartRotationTimer();
+		StartRotationTimer(CurrentTransformState);
 	}
 	if (CurrentTransformState == ETransformState::ETS_Scale)
 	{
@@ -261,15 +293,32 @@ void UTransformationActorsComponent::StartLocationTimer()
 
 }
 
-void UTransformationActorsComponent::StartRotationTimer()
+void UTransformationActorsComponent::StartRotationTimer(ETransformState CurrentTransformState)
 {
-	if (GetWorld())
+	if (GetWorld() == nullptr)
 	{
-		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationActor, RotationTimerDeltaTime, true);
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: StartRotationTimer(): GetWorld() is not valid."));
+		}
+		return;
 	}
-	else if (bIsShowDebugMessages)
+
+	if (CurrentTransformState == ETransformState::ETS_Rotation_YawPitch)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TransformationActors: StartRotationTimer(): GetWorld() is not valid."));
+		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationYawPitchActor, RotationTimerDeltaTime, true);
+	}
+	if (CurrentTransformState == ETransformState::ETS_Rotation_Roll)
+	{
+		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationRollActor, RotationTimerDeltaTime, true);
+	}
+	if (CurrentTransformState == ETransformState::ETS_Rotation_Pitch)
+	{
+		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationPitchActor, RotationTimerDeltaTime, true);
+	}
+	if (CurrentTransformState == ETransformState::ETS_Rotation_Yaw)
+	{
+		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationYawActor, RotationTimerDeltaTime, true);
 	}
 
 }
@@ -341,22 +390,10 @@ void UTransformationActorsComponent::LocationActor()
 
 }
 
-void UTransformationActorsComponent::RotationActor()
+void UTransformationActorsComponent::RotationYawPitchActor()
 {
-	if (GetPlayerController() == nullptr)
+	if (!CheckControllerAndPawn())
 	{
-		if (bIsShowDebugMessages)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): PlayerController is not valid."));
-		}
-		return;
-	}
-	if (GetPlayerPawn() == nullptr)
-	{
-		if (bIsShowDebugMessages)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): PlayerPawn is not valid."));
-		}
 		return;
 	}
 
@@ -428,6 +465,195 @@ void UTransformationActorsComponent::RotationActor()
 	GetTransformActor()->AddActorWorldRotation(DeltaRotationQ);
 
 
+}
+
+void UTransformationActorsComponent::RotationRollActor()
+{
+	if (!CheckControllerAndPawn())
+	{
+		return;
+	}
+
+	float
+		/*The current coordinates of the mouse.*/
+		LocationX,
+		LocationY;
+
+	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationRollActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
+		}
+		return;
+	}
+
+	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
+	if (!GetIsLockFirstIterationRotationTimer())
+	{
+		/*
+		Remember the initial rotation angles from which changes in angles will be calculated.
+		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
+		*/
+		RollSave = LocationX;
+
+		SetIsLockFirstIterationRotationTimer(true);
+
+	}
+
+	CalcDeltaRoll(LocationX);
+
+	float
+		DeltaRollDegreeTmp = GetDeltaRollDegree() * RotationSpeed,
+		DeltaRollRadian = FMath::DegreesToRadians(DeltaRollDegreeTmp);
+
+	FQuat DeltaRotationQRoll;
+
+	FVector	AxeRoll;
+
+	if (GetComponentForAxisRotation())
+	{
+		AxeRoll = -GetComponentForAxisRotation()->GetForwardVector();
+	}
+	else
+	{
+		//if (bIsShowDebugMessages)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
+		//}
+
+		AxeRoll = -GetPlayerPawn()->GetActorForwardVector();
+	}
+
+	DeltaRotationQRoll = FQuat(AxeRoll, DeltaRollRadian);
+	GetTransformActor()->AddActorWorldRotation(DeltaRotationQRoll);
+}
+
+void UTransformationActorsComponent::RotationPitchActor()
+{
+	if (!CheckControllerAndPawn())
+	{
+		return;
+	}
+
+	float
+		/*The current coordinates of the mouse.*/
+		LocationX,
+		LocationY;
+
+	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
+		}
+		return;
+	}
+
+	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
+	if (!GetIsLockFirstIterationRotationTimer())
+	{
+		/*
+		Remember the initial rotation angles from which changes in angles will be calculated.
+		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
+		*/
+		PitchSave = LocationY;
+
+		SetIsLockFirstIterationRotationTimer(true);
+
+	}
+
+	CalcDeltaPitch(LocationY);
+
+	float
+		DeltaPitchDegreeTmp = GetDeltaPitchDegree() * RotationSpeed,
+		DeltaPitchRadian = FMath::DegreesToRadians(DeltaPitchDegreeTmp);
+
+	FQuat DeltaRotationQPitch;
+
+
+	FVector	AxePitch;
+
+
+	if (GetComponentForAxisRotation())
+	{
+		AxePitch = -GetComponentForAxisRotation()->GetRightVector();
+	}
+	else
+	{
+		//if (bIsShowDebugMessages)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
+		//}
+
+		AxePitch = -GetPlayerPawn()->GetActorRightVector();
+	}
+
+	DeltaRotationQPitch = FQuat(AxePitch, DeltaPitchRadian);
+	GetTransformActor()->AddActorWorldRotation(DeltaRotationQPitch);
+}
+
+void UTransformationActorsComponent::RotationYawActor()
+{
+	if (!CheckControllerAndPawn())
+	{
+		return;
+	}
+
+	float
+		/*The current coordinates of the mouse.*/
+		LocationX,
+		LocationY;
+
+	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
+		}
+		return;
+	}
+
+	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
+	if (!GetIsLockFirstIterationRotationTimer())
+	{
+		/*
+		Remember the initial rotation angles from which changes in angles will be calculated.
+		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
+		*/
+		YawSave = LocationX;
+
+		SetIsLockFirstIterationRotationTimer(true);
+
+	}
+
+	CalcDeltaYaw(LocationX);
+
+	float
+		DeltaYawDegreeTmp = GetDeltaYawDegree() * RotationSpeed,
+		DeltaYawRadian = FMath::DegreesToRadians(DeltaYawDegreeTmp);
+
+	FQuat DeltaRotationQYaw;
+
+
+	FVector	AxeYaw;
+
+	if (GetComponentForAxisRotation())
+	{
+		AxeYaw = -GetComponentForAxisRotation()->GetUpVector();
+	}
+	else
+	{
+		//if (bIsShowDebugMessages)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
+		//}
+
+		AxeYaw = -GetPlayerPawn()->GetActorUpVector();
+	}
+
+	DeltaRotationQYaw = FQuat(AxeYaw, DeltaYawRadian);
+	GetTransformActor()->AddActorWorldRotation(DeltaRotationQYaw);
 }
 
 void UTransformationActorsComponent::ScaleActor()
@@ -669,6 +895,29 @@ void UTransformationActorsComponent::CalcDeltaYaw(float Yaw)
 	YawSave = Yaw;
 }
 
+bool UTransformationActorsComponent::CheckControllerAndPawn()
+{
+	bool bAllValid = true;
+
+	if (GetPlayerController() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: CheckControllerAndPawn(): PlayerController is not valid."));
+		}
+		bAllValid = false;
+	}
+	if (GetPlayerPawn() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: CheckControllerAndPawn(): PlayerPawn is not valid."));
+		}
+		bAllValid = false;
+	}
+
+	return bAllValid;
+}
 
 
 
