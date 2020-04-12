@@ -9,7 +9,7 @@
 	"CreatedByURL": "https://github.com/filln/UE4-TransformationActorsPlugin",
 	"DocsURL": "https://github.com/filln/UE4-TransformationActorsPlugin/wiki/Content",
 	"MarketplaceURL": "",
-	"SupportURL": "",
+	"SupportURL": "https://forums.unrealengine.com/community/released-projects/1744672-transform-actors-plugin",
   	"EngineVersion": "4.22.0",
 	"CanContainContent": true,
 	"IsBetaVersion": false,
