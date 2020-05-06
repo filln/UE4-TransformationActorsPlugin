@@ -15,7 +15,7 @@ class APawn;
 UENUM(BlueprintType, Category = "TransformationActorsComponent | ETransformState")
 enum class ETransformState : uint8
 {
-	//Location.
+	//Translation.
 	ETS_Location	UMETA(DisplayName = "Location"),
 
 	//Rotation Yaw and Pitch.
@@ -74,7 +74,7 @@ public:
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "TransformationActorsComponent | Delegates")
 		FOnStopTransformationActor OnStopTransformationActor;
 
-	/*The period when the timer for moving actors is triggered.*/
+	/*The period when the timer for translation actors is triggered.*/
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		float LocationTimerDeltaTime;
 
@@ -86,11 +86,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		float ScaleTimerDeltaTime;
 
-	/*Parameter for VInterpConstantTo, interpolation speed of relocation vector.*/
+	/*Parameter for VInterpConstantTo, interpolation speed of translation vector.*/
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		float LocationSpeed;
 
-	/*The speed of relocation in depth (from yourself or to yourself).*/
+	/*If true than actor under cursor or keyboard can't move through other objects . If false than actor can do it*/
+	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
+		bool bSweep;
+
+	/*The speed of translation in depth (from yourself or to yourself).*/
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		float LocationDeepSpeed;
 
@@ -102,15 +106,30 @@ public:
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		float RotationSpeed;
 
+	/*Minimum scale with cursor and keyboard.*/
+	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
+		float MinScale;
+
 	/*Show debug messages.*/
 	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent")
 		bool bIsShowDebugMessages;
 
+	/*Speed of translation actor with keyboard.*/
+	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent | Keyboard")
+		float LocationSpeedKeyboard;
+
+	/*Speed of rotation actor with keyboard.*/
+	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent | Keyboard")
+		float RotationSpeedKeyboard;
+
+	/*Speed of scale actor with keyboard.*/
+	UPROPERTY(EditAnywhere, Category = "TransformationActorsComponent | Keyboard")
+		float ScaleSpeedKeyboard;
 private:
 	//////////////////////////////////////////////////////////////////////////
 	/*Private variables.*/
 
-	/*Timer for relocation actors.*/
+	/*Timer for translation actors.*/
 	FTimerHandle LocationTimer;
 
 	/*Timer for rotation of actors.*/
@@ -129,14 +148,14 @@ private:
 	/*The states of the actor through which you can select an operation on it.*/
 	ETransformState TransformState;
 
-	/*Saves the state of the actors: under the control of the player or not.*/
+	/*Saves the state of the actors: under the control of the player cursor or not.*/
 	bool bIsTransform;
 
 	APlayerController* PlayerController;
 	APawn* PlayerPawn;
 
-	/*The component from which the axes of rotation are taken.*/
-	USceneComponent* ComponentForAxisRotation;
+	/*The component from which the axes of transformation are taken.*/
+	USceneComponent* ComponentForTransformationAxis;
 
 	/*An actor controlled by a player.*/
 	AActor* TransformActor;
@@ -173,6 +192,28 @@ private:
 	/*The sum of AxisValue values.*/
 	float SumInputAxisValue;
 
+	/*Show transformation status: Location left or right.*/
+	bool bIsLocationLeftRightKeyboard;
+	/*Show transformation status: Location up or down.*/
+	bool bIsLocationUpDownKeyboard;
+	/*Show transformation status: Location inside or outside.*/
+	bool bIsLocationInsideOutsideKeyboard;
+	/*Show transformation status: Rotation Roll.*/
+	bool bIsRotationRollKeyboard;
+	/*Show transformation status: Rotation Pitch.*/
+	bool bIsRotationPitchKeyboard;
+	/*Show transformation status: Rotation Yaw.*/
+	bool bIsRotationYawKeyboard;
+	/*Show transformation status: Scale.*/
+	bool bIsScaleKeyboard;
+	/*Show transformation status: Scale X.*/
+	bool bIsScaleXKeyboard;
+	/*Show transformation status: Scale Y.*/
+	bool bIsScaleYKeyboard;
+	/*Show transformation status: Scale Z.*/
+	bool bIsScaleZKeyboard;
+
+
 public:
 	//////////////////////////////////////////////////////////////////////////
 	/*Public UFUNCTION methods.*/
@@ -196,6 +237,51 @@ public:
 	/*Calculate the sum of AxisValue values.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | General methods")
 		void CalcSumInputAxisValue(float InputAxisValue);
+
+
+
+	/*Location left or right with keyboard. Use Y axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void LocationLeftRightKeyboard(float AxisValue);
+	/*Location up or down with keyboard. Use Z axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void LocationUpDownKeyboard(float AxisValue);
+	/*Location inside or outside with keyboard. Use X axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void LocationInsideOutsideKeyboard(float AxisValue);
+	/*Rotation Roll with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void RotationRollKeyboard(float AxisValue);
+	/*Rotation Pitch with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void RotationPitchKeyboard(float AxisValue);
+	/*Rotation Yaw with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void RotationYawKeyboard(float AxisValue);
+	/*Scale with keyboard along local XYZ axis.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void ScaleKeyboard(float AxisValue);
+	/*Scale with keyboard along local X axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void ScaleXKeyboard(float AxisValue);
+	/*Scale with keyboard along local Y axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void ScaleYKeyboard(float AxisValue);
+	/*Scale with keyboard along local Z axe.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | General methods")
+		void ScaleZKeyboard(float AxisValue);
+
+	/*Location with keyboard. Basic method.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Basic methods")
+		void LocationKeyboardBasic(FVector DeltaLocation);
+
+	/*Rotation with keyboard. Basic methods.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Basic methods")
+		void RotationKeyboardBasic(float AxisValue, FVector Axe);
+
+	/*Scale with keyboard. Basic methods.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Basic methods")
+		void ScaleKeyboardBasic(FVector DeltaScale3D);
 
 	/*Set the input mode to "Game and UI".*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
@@ -239,16 +325,7 @@ public:
 
 	/*Rotate TransformActor Yaw and Pitch.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void RotationYawPitchActor();
-	/*Rotate TransformActor Roll.*/
-	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void RotationRollActor();
-	/*Rotate TransformActor Pitch.*/
-	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void RotationPitchActor();
-	/*Rotate TransformActor Yaw.*/
-	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
-		void RotationYawActor();
+		void RotationActor();
 
 	/*Scale TransformActor.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Basic methods")
@@ -353,10 +430,10 @@ public:
 		void SetTransformState(ETransformState InTransformState) { TransformState = InTransformState; }
 
 
-	/*Saves the state of the actors: under the control of the player or not.*/
+	/*Saves the state of the actors: under the control of the player cursor or not.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Setters")
 		void SetIsTransform(bool InIsTransform) { bIsTransform = InIsTransform; }
-	/*The state of the actors: under the control of the player or not.*/
+	/*The state of the actors: under the control of the player cursor or not.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
 		bool GetIsTransform() const { return bIsTransform; }
 
@@ -499,6 +576,12 @@ public:
 	/*Parameter for VInterpConstantTo, interpolation speed of the relocation vector.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
 		float GetLocationSpeed() const { return LocationSpeed; }
+	/*If true than actor under cursor can't move through other objects . If false than actor can do it*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Setters")
+		void SetSweep(bool InSweep) { bSweep = InSweep; }
+	/*If true than actor under cursor can't move through other objects . If false than actor can do it*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
+		bool GetSweep() const { return bSweep; }
 	/*Scaling speed.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Setters")
 		void SetScaleSpeed(float InScaleSpeed) { ScaleSpeed = InScaleSpeed; }
@@ -521,12 +604,18 @@ public:
 		float GetSumInputAxisValue() const { return SumInputAxisValue; }
 
 
-	/*The component from which the axes of rotation are taken.*/
+	/*The component from which the axes of transformation are taken.
+	Now ComponentForTransformationAxis use for
+	rotation with cursor,
+	translation with keyboard and rotation with keyboard.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Setters")
-		void SetComponentForAxisRotation(USceneComponent* InComponentForAxisRotation) { ComponentForAxisRotation = InComponentForAxisRotation; }
-	/*The component from which the axes of rotation are taken.*/
+		void SetComponentForTransformationAxis(USceneComponent* InComponentForTransformationAxis) { ComponentForTransformationAxis = InComponentForTransformationAxis; }
+	/*The component from which the axes of transformation are taken.
+	Now ComponentForTransformationAxis use for
+	rotation with cursor,
+	translation with keyboard and rotation with keyboard.*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
-		USceneComponent* GetComponentForAxisRotation() const { return ComponentForAxisRotation; }
+		USceneComponent* GetComponentForTransformationAxis() const { return ComponentForTransformationAxis; }
 
 
 	/*The speed of movement to the depth (from yourself or to yourself).*/
@@ -535,6 +624,106 @@ public:
 	/*The speed of movement to the depth (from yourself or to yourself).*/
 	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
 		float GetLocationDeepSpeed() const { return LocationDeepSpeed; }
-	
+
+
+	/*Minimum scale with cursor and keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Setters")
+		void SetMinScale(float InMinScale) { MinScale = InMinScale; }
+	/*Minimum scale with cursor and keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Getters")
+		float GetMinScale() const { return MinScale; }
+
+
+	/*
+	*	Getters and Setters for bool variables that show transformation status and other variables with use keyboard.
+	*/
+
+	/*Set transformation status: Location left or right.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsLocationLeftRightKeyboard(bool InIsLocationLeftRightKeyboard) { bIsLocationLeftRightKeyboard = InIsLocationLeftRightKeyboard; }
+	/*Show transformation status: Location left or right.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsLocationLeftRightKeyboard() const { return bIsLocationLeftRightKeyboard; }
+	/*Set transformation status: Location up or down.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsLocationUpDownKeyboard(bool InIsLocationUpDownKeyboard) { bIsLocationUpDownKeyboard = InIsLocationUpDownKeyboard; }
+	/*Show transformation status: Location up or down.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsLocationUpDownKeyboard() const { return bIsLocationUpDownKeyboard; }
+	/*Set transformation status: Location inside or outside.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsLocationInsideOutsideKeyboard(bool InIsLocationInsideOutsideKeyboard) { bIsLocationInsideOutsideKeyboard = InIsLocationInsideOutsideKeyboard; }
+	/*Show transformation status: Location inside or outside.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsLocationInsideOutsideKeyboard() const { return bIsLocationInsideOutsideKeyboard; }
+	/*Speed of relocation actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetLocationSpeedKeyboard(float InLocationSpeedKeyboard) { LocationSpeedKeyboard = InLocationSpeedKeyboard; }
+	/*Speed of relocation actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		float GetLocationSpeedKeyboard() const { return LocationSpeedKeyboard; }
+
+
+	/*Set transformation status: Rotation Roll.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsRotationRollKeyboard(bool InIsRotationRollKeyboard) { bIsRotationRollKeyboard = InIsRotationRollKeyboard; }
+	/*Show transformation status: Rotation Roll.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsRotationRollKeyboard() const { return bIsRotationRollKeyboard; }
+	/*Set transformation status: Rotation Pitch.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsRotationPitchKeyboard(bool InIsRotationPitchKeyboard) { bIsRotationPitchKeyboard = InIsRotationPitchKeyboard; }
+	/*Show transformation status: Rotation Pitch.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsRotationPitchKeyboard() const { return bIsRotationPitchKeyboard; }
+	/*Set transformation status: Rotation Yaw.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsRotationYawKeyboard(bool InIsRotationYawKeyboard) { bIsRotationYawKeyboard = InIsRotationYawKeyboard; }
+	/*Show transformation status: Rotation Yaw.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsRotationYawKeyboard() const { return bIsRotationYawKeyboard; }
+	/*Speed of rotation actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetRotationSpeedKeyboard(float InRotationSpeedKeyboard) { RotationSpeedKeyboard = InRotationSpeedKeyboard; }
+	/*Speed of rotation actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		float GetRotationSpeedKeyboard() const { return RotationSpeedKeyboard; }
+
+
+	/*Set transformation status: Scale.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsScaleKeyboard(bool InIsScaleKeyboard) { bIsScaleKeyboard = InIsScaleKeyboard; }
+	/*Show transformation status: Scale.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsScaleKeyboard() const { return bIsScaleKeyboard; }
+	/*Set transformation status: Scale X.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsScaleXKeyboard(bool InIsScaleXKeyboard) { bIsScaleXKeyboard = InIsScaleXKeyboard; }
+	/*Show transformation status: Scale X.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsScaleXKeyboard() const { return bIsScaleXKeyboard; }
+	/*Set transformation status: Scale Y.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsScaleYKeyboard(bool InIsScaleYKeyboard) { bIsScaleYKeyboard = InIsScaleYKeyboard; }
+	/*Show transformation status: Scale Y.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsScaleYKeyboard() const { return bIsScaleYKeyboard; }
+	/*Set transformation status: Scale Z.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetIsScaleZKeyboard(bool InIsScaleZKeyboard) { bIsScaleZKeyboard = InIsScaleZKeyboard; }
+	/*Show transformation status: Scale Z.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		bool GetIsScaleZKeyboard() const { return bIsScaleZKeyboard; }
+	/*Speed of scale actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Setters")
+		void SetScaleSpeedKeyboard(float InScaleSpeedKeyboard) { ScaleSpeedKeyboard = InScaleSpeedKeyboard; }
+	/*Speed of scale actor with keyboard.*/
+	UFUNCTION(BlueprintCallable, Category = "TransformationActorsComponent | Keyboard | Getters")
+		float GetScaleSpeedKeyboard() const { return ScaleSpeedKeyboard; }
+
+
+
+
+
 
 };

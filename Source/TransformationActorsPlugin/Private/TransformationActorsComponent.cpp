@@ -3,6 +3,7 @@
 
 #include "TransformationActorsComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
@@ -29,6 +30,7 @@ UTransformationActorsComponent::UTransformationActorsComponent()
 	ScaleTimerDeltaTime = TimersDeltaTime;
 
 	LocationSpeed = 25.f;
+	bSweep = false;
 	LocationDeepSpeed = 25.f;
 	ScaleSpeed = 0.015f;
 	RotationSpeed = 0.5f;
@@ -39,6 +41,12 @@ UTransformationActorsComponent::UTransformationActorsComponent()
 	bIsLockFirstIterationScaleTimer = false;
 
 	bIsShowDebugMessages = false;
+
+	LocationSpeedKeyboard = 25.f;
+	RotationSpeedKeyboard = 5.f;
+	ScaleSpeedKeyboard = 0.1f;
+
+	MinScale = 0.01f;
 }
 
 void UTransformationActorsComponent::BeginPlay()
@@ -111,6 +119,7 @@ void UTransformationActorsComponent::StopTransformationActor()
 	}
 }
 
+
 void UTransformationActorsComponent::SwitchOnTransformationMode(ETransformState InTransformState)
 {
 	if (
@@ -154,6 +163,273 @@ void UTransformationActorsComponent::CalcSumInputAxisValue(float InputAxisValue)
 		return;
 	}
 	SumInputAxisValue += InputAxisValue;
+}
+
+void UTransformationActorsComponent::LocationLeftRightKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaLocation = FVector(0.f, AxisValue * LocationSpeedKeyboard, 0.f);
+
+	LocationKeyboardBasic(DeltaLocation);
+
+}
+
+void UTransformationActorsComponent::LocationUpDownKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaLocation = FVector(0.f, 0.f, AxisValue * LocationSpeedKeyboard);
+
+	LocationKeyboardBasic(DeltaLocation);
+
+}
+
+void UTransformationActorsComponent::LocationInsideOutsideKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaLocation = FVector(AxisValue * LocationSpeedKeyboard, 0.f, 0.f);
+
+	LocationKeyboardBasic(DeltaLocation);
+}
+
+void UTransformationActorsComponent::RotationRollKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	if (GetPlayerPawn() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationRollKeyboard(): PlayerPawn is not valid."));
+		}
+		return;
+	}
+
+	FVector AxeRoll;
+
+	if (GetComponentForTransformationAxis())
+	{
+		AxeRoll = GetComponentForTransformationAxis()->GetForwardVector();
+	}
+	else
+	{
+		AxeRoll = GetPlayerPawn()->GetActorForwardVector();
+	}
+
+	RotationKeyboardBasic(AxisValue, AxeRoll);
+}
+
+void UTransformationActorsComponent::RotationPitchKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	if (GetPlayerPawn() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationRollKeyboard(): PlayerPawn is not valid."));
+		}
+		return;
+	}
+
+	FVector	AxePitch;
+
+	if (GetComponentForTransformationAxis())
+	{
+		AxePitch = GetComponentForTransformationAxis()->GetRightVector();
+	}
+	else
+	{
+		AxePitch = GetPlayerPawn()->GetActorRightVector();
+	}
+
+	RotationKeyboardBasic(AxisValue, AxePitch);
+}
+
+void UTransformationActorsComponent::RotationYawKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	if (GetPlayerPawn() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationRollKeyboard(): PlayerPawn is not valid."));
+		}
+		return;
+	}
+
+	FVector	AxeYaw;
+
+	if (GetComponentForTransformationAxis())
+	{
+		AxeYaw = GetComponentForTransformationAxis()->GetUpVector();
+	}
+	else
+	{
+		AxeYaw = GetPlayerPawn()->GetActorUpVector();
+	}
+
+	RotationKeyboardBasic(AxisValue, AxeYaw);
+}
+
+void UTransformationActorsComponent::ScaleKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaScale3D = FVector(AxisValue * ScaleSpeedKeyboard);
+
+	ScaleKeyboardBasic(DeltaScale3D);
+}
+
+void UTransformationActorsComponent::ScaleXKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaScaleX = FVector(AxisValue * ScaleSpeedKeyboard, 0.f, 0.f);
+
+	ScaleKeyboardBasic(DeltaScaleX);
+}
+
+void UTransformationActorsComponent::ScaleYKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaScaleY = FVector(0.f, AxisValue * ScaleSpeedKeyboard, 0.f);
+
+	ScaleKeyboardBasic(DeltaScaleY);
+}
+
+void UTransformationActorsComponent::ScaleZKeyboard(float AxisValue)
+{
+	if (AxisValue == 0.f)
+	{
+		return;
+	}
+
+	FVector DeltaScaleZ = FVector(0.f, 0.f, AxisValue * ScaleSpeedKeyboard);
+
+	ScaleKeyboardBasic(DeltaScaleZ);
+}
+
+void UTransformationActorsComponent::LocationKeyboardBasic(FVector DeltaLocation)
+{
+	if (GetTransformActor() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: LocationKeyboard(): TransformActor is not valid."));
+		}
+		return;
+	}
+
+	if (GetPlayerPawn() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: LocationKeyboard(): PlayerPawn is not valid."));
+		}
+		return;
+	}
+
+	FTransform ComponentAxisTransform;
+
+	if (GetComponentForTransformationAxis())
+	{
+		ComponentAxisTransform = GetComponentForTransformationAxis()->GetComponentTransform();
+	}
+	else
+	{
+		ComponentAxisTransform = GetPlayerPawn()->GetRootComponent()->GetComponentTransform();
+	}
+
+	FVector CurrentLocation = GetTransformActor()->GetActorLocation();
+
+	FVector CurrenLocationInComponentSpace = UKismetMathLibrary::InverseTransformLocation(ComponentAxisTransform, CurrentLocation);
+
+	FVector NewLocationInComponentSpace = CurrenLocationInComponentSpace + DeltaLocation;
+
+	FTransform NewTransformInComponentSpace = FTransform(NewLocationInComponentSpace);
+
+	FTransform NewTransform = UKismetMathLibrary::ComposeTransforms(NewTransformInComponentSpace, ComponentAxisTransform);
+
+	FVector NewLocation = NewTransform.GetTranslation();
+
+	GetTransformActor()->SetActorLocation(NewLocation, bSweep);
+
+}
+
+void UTransformationActorsComponent::RotationKeyboardBasic(float AxisValue, FVector Axe)
+{
+	if (GetTransformActor() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationKeyboard(): TransformActor is not valid."));
+		}
+		return;
+	}
+
+	float DeltaDegree = AxisValue * RotationSpeedKeyboard;
+	float DeltaRadian = FMath::DegreesToRadians(DeltaDegree);
+
+	FQuat DeltaRotationQ = FQuat(Axe, DeltaRadian);
+
+	GetTransformActor()->AddActorWorldRotation(DeltaRotationQ, bSweep);
+}
+
+void UTransformationActorsComponent::ScaleKeyboardBasic(FVector DeltaScale3D)
+{
+	if (GetTransformActor() == nullptr)
+	{
+		if (bIsShowDebugMessages)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: ScaleKeyboardBasic(): TransformActor is not valid."));
+		}
+		return;
+	}
+
+	FVector CurrentScale3D = GetTransformActor()->GetActorScale3D();
+
+	FVector NewScale3DKeyboard = CurrentScale3D + DeltaScale3D;
+
+	/*Limit the minimum scale.*/
+	if (NewScale3DKeyboard.X <= MinScale || NewScale3DKeyboard.Y <= MinScale || NewScale3DKeyboard.Z <= MinScale)
+	{
+		NewScale3DKeyboard = CurrentScale3D;
+	}
+
+	GetTransformActor()->SetActorScale3D(NewScale3DKeyboard);
+
 }
 
 void UTransformationActorsComponent::SetInputModeGameAndUI()
@@ -284,22 +560,7 @@ void UTransformationActorsComponent::StartRotationTimer(ETransformState CurrentT
 		return;
 	}
 
-	if (CurrentTransformState == ETransformState::ETS_Rotation_YawPitch)
-	{
-		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationYawPitchActor, RotationTimerDeltaTime, true);
-	}
-	if (CurrentTransformState == ETransformState::ETS_Rotation_Roll)
-	{
-		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationRollActor, RotationTimerDeltaTime, true);
-	}
-	if (CurrentTransformState == ETransformState::ETS_Rotation_Pitch)
-	{
-		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationPitchActor, RotationTimerDeltaTime, true);
-	}
-	if (CurrentTransformState == ETransformState::ETS_Rotation_Yaw)
-	{
-		GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationYawActor, RotationTimerDeltaTime, true);
-	}
+	GetWorld()->GetTimerManager().SetTimer(RotationTimer, this, &UTransformationActorsComponent::RotationActor, RotationTimerDeltaTime, true);
 
 }
 
@@ -362,15 +623,15 @@ void UTransformationActorsComponent::LocationActor()
 	NewLocation = WorldLocation + (WorldDirection * MultiplierDistance);
 
 	/*Slightly removes jerking when moving, but the actor lags behind the cursor.*/
-	FVector InterpLocation = FMath::VInterpTo(GetTransformActor()->GetActorLocation(), NewLocation, LocationTimerDeltaTime, LocationSpeed);
+	FVector InterpNewLocation = FMath::VInterpTo(GetTransformActor()->GetActorLocation(), NewLocation, LocationTimerDeltaTime, LocationSpeed);
 
 	//UE_LOG(LogTemp, Warning, TEXT("Roll: %f, Pitch: %f, Yaw: %f"), Rotation.Roll, Rotation.Pitch, Rotation.Yaw);
 
-	GetTransformActor()->SetActorLocation(InterpLocation);
+	GetTransformActor()->SetActorLocation(InterpNewLocation, bSweep);
 
 }
 
-void UTransformationActorsComponent::RotationYawPitchActor()
+void UTransformationActorsComponent::RotationActor()
 {
 	if (!CheckControllerAndPawn())
 	{
@@ -398,243 +659,77 @@ void UTransformationActorsComponent::RotationYawPitchActor()
 		Remember the initial rotation angles from which changes in angles will be calculated.
 		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
 		*/
+		RollSave = LocationX;
 		PitchSave = LocationY;
 		YawSave = LocationX;
-
-		SetIsLockFirstIterationRotationTimer(true);
-
-	}
-
-	CalcDeltaPitch(LocationY);
-	CalcDeltaYaw(LocationX);
-
-	float
-		DeltaPitchDegreeTmp = GetDeltaPitchDegree() * RotationSpeed,
-		DeltaYawDegreeTmp = GetDeltaYawDegree() * RotationSpeed,
-		DeltaPitchRadian = FMath::DegreesToRadians(DeltaPitchDegreeTmp),
-		DeltaYawRadian = FMath::DegreesToRadians(DeltaYawDegreeTmp);
-
-	FQuat
-		DeltaRotationQPitch,
-		DeltaRotationQYaw,
-		DeltaRotationQ;
-
-	FVector
-		AxePitch,
-		AxeYaw;
-
-	if (GetComponentForAxisRotation())
-	{
-		AxePitch = -GetComponentForAxisRotation()->GetRightVector();
-		AxeYaw = -GetComponentForAxisRotation()->GetUpVector();
-	}
-	else
-	{
-		//if (bIsShowDebugMessages)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
-		//}
-
-		AxePitch = -GetPlayerPawn()->GetActorRightVector();
-		AxeYaw = -GetPlayerPawn()->GetActorUpVector();
-	}
-
-	DeltaRotationQPitch = FQuat(AxePitch, DeltaPitchRadian);
-	DeltaRotationQYaw = FQuat(AxeYaw, DeltaYawRadian);
-	DeltaRotationQ = DeltaRotationQPitch * DeltaRotationQYaw;
-	GetTransformActor()->AddActorWorldRotation(DeltaRotationQ);
-
-
-}
-
-void UTransformationActorsComponent::RotationRollActor()
-{
-	if (!CheckControllerAndPawn())
-	{
-		return;
-	}
-
-	float
-		/*The current coordinates of the mouse.*/
-		LocationX,
-		LocationY;
-
-	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
-	{
-		if (bIsShowDebugMessages)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationRollActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
-		}
-		return;
-	}
-
-	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
-	if (!GetIsLockFirstIterationRotationTimer())
-	{
-		/*
-		Remember the initial rotation angles from which changes in angles will be calculated.
-		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
-		*/
-		RollSave = LocationX;
 
 		SetIsLockFirstIterationRotationTimer(true);
 
 	}
 
 	CalcDeltaRoll(LocationX);
-
-	float
-		DeltaRollDegreeTmp = GetDeltaRollDegree() * RotationSpeed,
-		DeltaRollRadian = FMath::DegreesToRadians(DeltaRollDegreeTmp);
-
-	FQuat DeltaRotationQRoll;
-
-	FVector	AxeRoll;
-
-	if (GetComponentForAxisRotation())
-	{
-		AxeRoll = -GetComponentForAxisRotation()->GetForwardVector();
-	}
-	else
-	{
-		//if (bIsShowDebugMessages)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
-		//}
-
-		AxeRoll = -GetPlayerPawn()->GetActorForwardVector();
-	}
-
-	DeltaRotationQRoll = FQuat(AxeRoll, DeltaRollRadian);
-	GetTransformActor()->AddActorWorldRotation(DeltaRotationQRoll);
-}
-
-void UTransformationActorsComponent::RotationPitchActor()
-{
-	if (!CheckControllerAndPawn())
-	{
-		return;
-	}
-
-	float
-		/*The current coordinates of the mouse.*/
-		LocationX,
-		LocationY;
-
-	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
-	{
-		if (bIsShowDebugMessages)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
-		}
-		return;
-	}
-
-	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
-	if (!GetIsLockFirstIterationRotationTimer())
-	{
-		/*
-		Remember the initial rotation angles from which changes in angles will be calculated.
-		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
-		*/
-		PitchSave = LocationY;
-
-		SetIsLockFirstIterationRotationTimer(true);
-
-	}
-
 	CalcDeltaPitch(LocationY);
-
-	float
-		DeltaPitchDegreeTmp = GetDeltaPitchDegree() * RotationSpeed,
-		DeltaPitchRadian = FMath::DegreesToRadians(DeltaPitchDegreeTmp);
-
-	FQuat DeltaRotationQPitch;
-
-
-	FVector	AxePitch;
-
-
-	if (GetComponentForAxisRotation())
-	{
-		AxePitch = -GetComponentForAxisRotation()->GetRightVector();
-	}
-	else
-	{
-		//if (bIsShowDebugMessages)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
-		//}
-
-		AxePitch = -GetPlayerPawn()->GetActorRightVector();
-	}
-
-	DeltaRotationQPitch = FQuat(AxePitch, DeltaPitchRadian);
-	GetTransformActor()->AddActorWorldRotation(DeltaRotationQPitch);
-}
-
-void UTransformationActorsComponent::RotationYawActor()
-{
-	if (!CheckControllerAndPawn())
-	{
-		return;
-	}
-
-	float
-		/*The current coordinates of the mouse.*/
-		LocationX,
-		LocationY;
-
-	if (!GetPlayerController()->GetMousePosition(LocationX, LocationY))
-	{
-		if (bIsShowDebugMessages)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetPlayerController()->GetMousePosition(LocationX, LocationY) return false."));
-		}
-		return;
-	}
-
-	/*Actions when you click on an actor. Performed in the first tick of the timer after each click.*/
-	if (!GetIsLockFirstIterationRotationTimer())
-	{
-		/*
-		Remember the initial rotation angles from which changes in angles will be calculated.
-		If you do not remember, the corners from the previous click will be counted and the actor will rotate sharply.
-		*/
-		YawSave = LocationX;
-
-		SetIsLockFirstIterationRotationTimer(true);
-
-	}
-
 	CalcDeltaYaw(LocationX);
 
 	float
-		DeltaYawDegreeTmp = GetDeltaYawDegree() * RotationSpeed,
+		DeltaRollDegreeTmp = GetDeltaRollDegree() * RotationSpeed,
+		DeltaPitchDegreeTmp = GetDeltaPitchDegree() * RotationSpeed,
+		DeltaYawDegreeTmp = GetDeltaYawDegree() * RotationSpeed;
+	float
+		DeltaRollRadian = FMath::DegreesToRadians(DeltaRollDegreeTmp),
+		DeltaPitchRadian = FMath::DegreesToRadians(DeltaPitchDegreeTmp),
 		DeltaYawRadian = FMath::DegreesToRadians(DeltaYawDegreeTmp);
 
-	FQuat DeltaRotationQYaw;
+	FQuat
+		DeltaRotationQRoll,
+		DeltaRotationQPitch,
+		DeltaRotationQYaw,
+		DeltaRotationQ;
 
+	FVector
+		AxeRoll,
+		AxePitch,
+		AxeYaw;
 
-	FVector	AxeYaw;
-
-	if (GetComponentForAxisRotation())
+	if (GetComponentForTransformationAxis())
 	{
-		AxeYaw = -GetComponentForAxisRotation()->GetUpVector();
+		AxeRoll = -GetComponentForTransformationAxis()->GetForwardVector();
+		AxePitch = -GetComponentForTransformationAxis()->GetRightVector();
+		AxeYaw = -GetComponentForTransformationAxis()->GetUpVector();
 	}
 	else
 	{
-		//if (bIsShowDebugMessages)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("TransformationActors: RotationActor(): GetComponentForAxisRotation() is not valid. GetPlayerPawn()->GetActorRightVector() and GetPlayerPawn()->GetActorUpVector() will be used."));
-		//}
-
+		AxeRoll = -GetPlayerPawn()->GetActorForwardVector();
+		AxePitch = -GetPlayerPawn()->GetActorRightVector();
 		AxeYaw = -GetPlayerPawn()->GetActorUpVector();
 	}
 
+	DeltaRotationQRoll = FQuat(AxeRoll, DeltaRollRadian);
+	DeltaRotationQPitch = FQuat(AxePitch, DeltaPitchRadian);
 	DeltaRotationQYaw = FQuat(AxeYaw, DeltaYawRadian);
-	GetTransformActor()->AddActorWorldRotation(DeltaRotationQYaw);
+
+	switch (GetTransformState())
+	{
+	case ETransformState::ETS_Rotation_Roll :
+		DeltaRotationQ = DeltaRotationQRoll;
+		break;
+	case ETransformState::ETS_Rotation_Pitch :
+		DeltaRotationQ = DeltaRotationQPitch;
+		break;
+	case ETransformState::ETS_Rotation_Yaw :
+		DeltaRotationQ = DeltaRotationQYaw;
+		break;
+	case ETransformState::ETS_Rotation_YawPitch :
+		DeltaRotationQ = DeltaRotationQPitch * DeltaRotationQYaw;
+		break;
+	default:
+		return;
+	}
+
+	GetTransformActor()->AddActorWorldRotation(DeltaRotationQ, bSweep);
+
 }
+
 
 void UTransformationActorsComponent::ScaleActor()
 {
@@ -693,7 +788,7 @@ void UTransformationActorsComponent::ScaleActor()
 		NewScale3D = Scale3DSave - (DeltaLocationXY * ScaleSpeed);
 
 		/*Limit the minimum scale.*/
-		if (NewScale3D.X <= 0 || NewScale3D.Y <= 0 || NewScale3D.Z <= 0)
+		if (NewScale3D.X <= MinScale || NewScale3D.Y <= MinScale || NewScale3D.Z <= MinScale)
 		{
 			NewScale3D = NewScale3DTmp;
 		}
