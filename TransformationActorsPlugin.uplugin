@@ -8,7 +8,7 @@
 	"CreatedBy": "Anatoli Kucharau",
 	"CreatedByURL": "https://github.com/filln/UE4-TransformationActorsPlugin",
 	"DocsURL": "https://github.com/filln/UE4-TransformationActorsPlugin/wiki/Content",
-	"MarketplaceURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/e45b06e00615453c8880ffeda1b6f5f7",
 	"SupportURL": "https://forums.unrealengine.com/community/released-projects/1744672-transform-actors-plugin",
 	"EngineVersion": "4.22.0",
 	"CanContainContent": true,
